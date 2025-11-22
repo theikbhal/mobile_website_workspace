@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Student Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Bootstrap CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+
+  <style>
+    body {
+      background-color: #f5f5f5;
+    }
+    .card {
+      border-radius: 16px;
+    }
+    .btn-rounded {
+      border-radius: 999px;
+    }
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background-color: #f5f5f5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container py-3 pb-5">
+
+    <!-- Header -->
+    <div class="sticky-header pb-2">
+      <h4 class="fw-bold text-center mb-2">Student Manager</h4>
+      <p class="text-center text-muted mb-2 small">
+        Add, edit, delete, search & paginate. Data saved in this device.
+      </p>
+
+      <!-- Search & Filter -->
+      <div class="row g-2 mb-2">
+        <div class="col-8">
+          <input
+            id="searchInput"
+            type="text"
+            class="form-control form-control-sm"
+            placeholder="Search by name, email or mobile..."
+          />
+        </div>
+        <div class="col-4">
+          <select id="searchField" class="form-select form-select-sm">
+            <option value="all">All fields</option>
+            <option value="name">Name</option>
+            <option value="email">Email</option>
+            <option value="mobile">Mobile</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add / Edit Student Form -->
+    <div class="card mb-3 shadow-sm">
+      <div class="card-body">
+        <h6 class="card-title mb-3" id="formTitle">Add Student</h6>
+        <form id="studentForm">
+          <input type="hidden" id="studentId" />
+
+          <div class="mb-2">
+            <label class="form-label small mb-1" for="nameInput">Name</label>
+            <input
+              id="nameInput"
+              type="text"
+              class="form-control form-control-sm"
+              placeholder="Student name"
+              required
+            />
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label small mb-1" for="emailInput">Email</label>
+            <input
+              id="emailInput"
+              type="email"
+              class="form-control form-control-sm"
+              placeholder="student@example.com"
+              required
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small mb-1" for="mobileInput">Mobile</label>
+            <input
+              id="mobileInput"
+              type="tel"
+              class="form-control form-control-sm"
+              placeholder="10-digit mobile"
+              pattern="[0-9]{10}"
+              required
+            />
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm flex-grow-1 btn-rounded">
+              <span id="submitBtnText">Save</span>
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm btn-rounded d-none"
+              id="cancelEditBtn"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- List & Pagination -->
+    <div class="card shadow-sm">
+      <div class="card-body p-2">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="small text-muted" id="countLabel">0 students</span>
+          <select id="pageSizeSelect" class="form-select form-select-sm w-auto">
+            <option value="5">5 / page</option>
+            <option value="10" selected>10 / page</option>
+            <option value="20">20 / page</option>
+          </select>
+        </div>
+
+        <!-- Student List -->
+        <div id="studentsList" class="d-flex flex-column gap-2"></div>
+
+        <!-- Pagination Controls -->
+        <div class="d-flex justify-content-between align-items-center mt-3">
+          <button
+            id="prevPageBtn"
+            class="btn btn-outline-secondary btn-sm btn-rounded"
+          >
+            ◀ Prev
+          </button>
+          <span class="small text-muted" id="pageInfo">Page 1 / 1</span>
+          <button
+            id="nextPageBtn"
+            class="btn btn-outline-secondary btn-sm btn-rounded"
+          >
+            Next ▶
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS (optional for some components) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // ======== STATE ========
+    const STORAGE_KEY = "student_manager_list_v1";
+    let students = [];
+    let currentPage = 1;
+    let pageSize = 10;
+
+    // ======== HELPERS ========
+    function loadStudents() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      try {
+        return JSON.parse(raw) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveStudents() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
+    }
+
+    function clearForm() {
+      document.getElementById("studentId").value = "";
+      document.getElementById("nameInput").value = "";
+      document.getElementById("emailInput").value = "";
+      document.getElementById("mobileInput").value = "";
+      document.getElementById("formTitle").innerText = "Add Student";
+      document.getElementById("submitBtnText").innerText = "Save";
+      document.getElementById("cancelEditBtn").classList.add("d-none");
+    }
+
+    function setEditMode(student) {
+      document.getElementById("studentId").value = student.id;
+      document.getElementById("nameInput").value = student.name;
+      document.getElementById("emailInput").value = student.email;
+      document.getElementById("mobileInput").value = student.mobile;
+      document.getElementById("formTitle").innerText = "Edit Student";
+      document.getElementById("submitBtnText").innerText = "Update";
+      document.getElementById("cancelEditBtn").classList.remove("d-none");
+    }
+
+    function getFilteredStudents() {
+      const query = document
+        .getElementById("searchInput")
+        .value.trim()
+        .toLowerCase();
+      const field = document.getElementById("searchField").value;
+
+      if (!query) return students;
+
+      return students.filter((s) => {
+        const name = (s.name || "").toLowerCase();
+        const email = (s.email || "").toLowerCase();
+        const mobile = (s.mobile || "").toLowerCase();
+
+        switch (field) {
+          case "name":
+            return name.includes(query);
+          case "email":
+            return email.includes(query);
+          case "mobile":
+            return mobile.includes(query);
+          default:
+            return (
+              name.includes(query) ||
+              email.includes(query) ||
+              mobile.includes(query)
+            );
+        }
+      });
+    }
+
+    function renderStudents() {
+      const listEl = document.getElementById("studentsList");
+      const countLabel = document.getElementById("countLabel");
+      const pageInfo = document.getElementById("pageInfo");
+
+      const filtered = getFilteredStudents();
+      const total = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+      if (currentPage > totalPages) {
+        currentPage = totalPages;
+      }
+      if (currentPage < 1) {
+        currentPage = 1;
+      }
+
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const pageItems = filtered.slice(startIndex, endIndex);
+
+      listEl.innerHTML = "";
+
+      if (pageItems.length === 0) {
+        listEl.innerHTML =
+          '<div class="text-center text-muted small py-3">No students found. Add some!</div>';
+      } else {
+        pageItems.forEach((s) => {
+          const card = document.createElement("div");
+          card.className = "card border-0 bg-white shadow-sm";
+
+          card.innerHTML = `
+            <div class="card-body p-2">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1 pe-2">
+                  <div class="fw-semibold">${s.name}</div>
+                  <div class="small text-muted">${s.email}</div>
+                  <div class="small text-muted">📱 ${s.mobile}</div>
+                </div>
+                <div class="d-flex flex-column gap-1">
+                  <button class="btn btn-sm btn-outline-primary btn-rounded edit-btn">Edit</button>
+                  <button class="btn btn-sm btn-outline-danger btn-rounded delete-btn">Delete</button>
+                </div>
+              </div>
+            </div>
+          `;
+
+          const editBtn = card.querySelector(".edit-btn");
+          const deleteBtn = card.querySelector(".delete-btn");
+
+          editBtn.addEventListener("click", () => setEditMode(s));
+          deleteBtn.addEventListener("click", () => {
+            if (!confirm("Delete this student?")) return;
+            students = students.filter((st) => st.id !== s.id);
+            saveStudents();
+            renderStudents();
+          });
+
+          listEl.appendChild(card);
+        });
+      }
+
+      countLabel.innerText = `${total} student${total === 1 ? "" : "s"}`;
+      pageInfo.innerText = `Page ${currentPage} / ${totalPages}`;
+
+      // enable / disable buttons
+      document.getElementById("prevPageBtn").disabled = currentPage === 1;
+      document.getElementById("nextPageBtn").disabled =
+        currentPage === totalPages || total === 0;
+    }
+
+    // ======== EVENT LISTENERS ========
+    document.getElementById("studentForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const id = document.getElementById("studentId").value;
+      const name = document.getElementById("nameInput").value.trim();
+      const email = document.getElementById("emailInput").value.trim();
+      const mobile = document.getElementById("mobileInput").value.trim();
+
+      if (!name || !email || !mobile) {
+        alert("Please fill all fields");
+        return;
+      }
+
+      if (id) {
+        // Update
+        students = students.map((s) =>
+          s.id === id ? { ...s, name, email, mobile } : s
+        );
+      } else {
+        // Create
+        const newStudent = {
+          id: Date.now().toString(),
+          name,
+          email,
+          mobile,
+        };
+        students.unshift(newStudent); // latest on top
+      }
+
+      saveStudents();
+      clearForm();
+      renderStudents();
+    });
+
+    document.getElementById("cancelEditBtn").addEventListener("click", () => {
+      clearForm();
+    });
+
+    document.getElementById("searchInput").addEventListener("input", () => {
+      currentPage = 1;
+      renderStudents();
+    });
+
+    document.getElementById("searchField").addEventListener("change", () => {
+      currentPage = 1;
+      renderStudents();
+    });
+
+    document.getElementById("pageSizeSelect").addEventListener("change", (e) => {
+      pageSize = parseInt(e.target.value, 10) || 10;
+      currentPage = 1;
+      renderStudents();
+    });
+
+    document.getElementById("prevPageBtn").addEventListener("click", () => {
+      currentPage -= 1;
+      renderStudents();
+    });
+
+    document.getElementById("nextPageBtn").addEventListener("click", () => {
+      currentPage += 1;
+      renderStudents();
+    });
+
+    // ======== INIT ========
+    students = loadStudents();
+    renderStudents();
+  </script>
+</body>
+</html>
