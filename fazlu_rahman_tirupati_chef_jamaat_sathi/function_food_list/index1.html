@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chef Ingredients Form</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Bootstrap 5 CDN -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+
+  <style>
+    body {
+      background: #f5f5f5;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+    }
+
+    .app-shell {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-header {
+      background: #1f2933;
+      color: #ffffff;
+      padding: 12px 16px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    }
+
+    .app-header h1 {
+      font-size: 1.1rem;
+      margin: 0;
+      letter-spacing: 0.03em;
+    }
+
+    .app-body {
+      flex: 1;
+      padding: 12px;
+    }
+
+    .card {
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+    }
+
+    .ingredient-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .ingredient-label {
+      flex: 1.2;
+      font-size: 0.96rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ingredient-input {
+      flex: 0.8;
+    }
+
+    .ingredient-unit {
+      flex: 0.5;
+      font-size: 0.85rem;
+      text-align: right;
+      color: #555;
+      font-weight: 500;
+    }
+
+    .btn-big {
+      padding-top: 10px;
+      padding-bottom: 10px;
+      font-size: 1rem;
+      border-radius: 999px;
+    }
+
+    .preview-title {
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+
+    .preview-list {
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+
+    .preview-list strong {
+      font-weight: 600;
+    }
+
+    .fullscreen-view {
+      background: #ffffff;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      padding: 20px 16px;
+      overflow-y: auto;
+    }
+
+    .fullscreen-heading {
+      text-align: center;
+      margin-bottom: 16px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .fullscreen-close {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 10000;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Header -->
+    <header class="app-header">
+      <h1>Chef Ingredients Form</h1>
+      <small style="font-size: 0.7rem; opacity: 0.8"
+        >Fill, preview &amp; send to customer</small
+      >
+    </header>
+
+    <!-- Main body -->
+    <main class="app-body">
+      <!-- FORM VIEW -->
+      <div id="formView">
+        <div class="card p-3 mb-3">
+          <div class="mb-2">
+            <label class="form-label mb-1" for="customerName">
+              Customer / Function Name (optional)
+            </label>
+            <input
+              id="customerName"
+              type="text"
+              class="form-control form-control-sm"
+              placeholder="Eg: Ahmed Wedding – 24 Nov night"
+            />
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label mb-1" for="eventDate">
+              Date (optional)
+            </label>
+            <input
+              id="eventDate"
+              type="date"
+              class="form-control form-control-sm"
+            />
+          </div>
+        </div>
+
+        <div class="card p-3">
+          <h2
+            class="mb-2"
+            style="
+              font-size: 1rem;
+              font-weight: 600;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+            "
+          >
+            Ingredients List
+            <span style="font-size: 0.8rem; color: #6b7280">kg / L / packets</span>
+          </h2>
+
+          <div id="ingredientsContainer" class="mt-2"></div>
+
+          <div class="d-flex gap-2 mt-3">
+            <button
+              type="button"
+              class="btn btn-outline-secondary w-25 btn-big"
+              onclick="clearForm()"
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary w-75 btn-big"
+              onclick="goToPreview()"
+            >
+              Save &amp; Preview
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PREVIEW VIEW -->
+      <div id="previewView" style="display: none">
+        <div class="card p-3 mb-3">
+          <div class="preview-title">Summary</div>
+          <div id="previewMeta" class="mb-2"></div>
+
+          <div class="preview-title mt-3">Ingredients</div>
+          <div id="previewList" class="preview-list"></div>
+        </div>
+
+        <div class="d-flex flex-column gap-2 mt-3">
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-big"
+            onclick="backToForm()"
+          >
+            ← Back &amp; Edit
+          </button>
+          <button
+            type="button"
+            class="btn btn-success btn-big"
+            onclick="shareWhatsApp()"
+          >
+            📤 Share via WhatsApp (Text)
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-dark btn-big"
+            onclick="openFullscreen()"
+          >
+            🖼 Fullscreen View (for Screenshot)
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- FULLSCREEN VIEW (for screenshot) -->
+  <div id="fullscreenView" class="fullscreen-view" style="display: none">
+    <button
+      type="button"
+      class="btn btn-sm btn-secondary fullscreen-close"
+      onclick="closeFullscreen()"
+    >
+      ✕ Close
+    </button>
+
+    <h2 class="fullscreen-heading">Ingredients List</h2>
+    <div id="fullscreenMeta" class="mb-3" style="text-align: center"></div>
+
+    <hr />
+
+    <div id="fullscreenList" class="preview-list"></div>
+    <p
+      class="mt-4 text-center"
+      style="font-size: 0.75rem; color: #9ca3af; letter-spacing: 0.04em"
+    >
+      Generated using Chef Ingredients Form
+    </p>
+  </div>
+
+  <script>
+    // --- INGREDIENT CONFIG ---
+    const INGREDIENTS = [
+      { id: "rice", label: "Rice", emoji: "🍚", unit: "kg" },
+      { id: "dal", label: "Dal", emoji: "🥣", unit: "kg" },
+      { id: "wheat", label: "Wheat Flour", emoji: "🌾", unit: "kg" },
+      { id: "oil", label: "Oil", emoji: "🛢", unit: "L" },
+      { id: "onion", label: "Onion", emoji: "🧅", unit: "kg" },
+      { id: "tomato", label: "Tomato", emoji: "🍅", unit: "kg" },
+      { id: "potato", label: "Potato", emoji: "🥔", unit: "kg" },
+      { id: "chicken", label: "Chicken", emoji: "🍗", unit: "kg" },
+      { id: "mutton", label: "Mutton", emoji: "🥩", unit: "kg" },
+      { id: "fish", label: "Fish", emoji: "🐟", unit: "kg" },
+      { id: "egg", label: "Egg", emoji: "🥚", unit: "pcs" },
+      { id: "spices", label: "Spices / Masala", emoji: "🧂", unit: "pkts" },
+      { id: "curd", label: "Curd", emoji: "🥛", unit: "L" },
+      { id: "water", label: "Water (cans)", emoji: "💧", unit: "cans" },
+    ];
+
+    const STORAGE_KEY = "chef_ingredients_form_v1";
+
+    const formView = document.getElementById("formView");
+    const previewView = document.getElementById("previewView");
+    const fullscreenView = document.getElementById("fullscreenView");
+
+    const ingredientsContainer = document.getElementById(
+      "ingredientsContainer"
+    );
+    const previewMeta = document.getElementById("previewMeta");
+    const previewList = document.getElementById("previewList");
+    const fullscreenMeta = document.getElementById("fullscreenMeta");
+    const fullscreenList = document.getElementById("fullscreenList");
+
+    const customerNameInput = document.getElementById("customerName");
+    const eventDateInput = document.getElementById("eventDate");
+
+    // --- INIT FORM ---
+    function buildForm() {
+      ingredientsContainer.innerHTML = "";
+
+      INGREDIENTS.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "ingredient-row";
+
+        const label = document.createElement("div");
+        label.className = "ingredient-label";
+        label.innerHTML = `<span>${item.emoji}</span><span>${item.label}</span>`;
+
+        const inputWrap = document.createElement("div");
+        inputWrap.className = "ingredient-input";
+
+        const input = document.createElement("input");
+        input.type = "number";
+        input.inputMode = "decimal";
+        input.min = "0";
+        input.step = "0.1";
+        input.className = "form-control form-control-sm text-end";
+        input.id = "qty_" + item.id;
+        input.placeholder = "0";
+
+        inputWrap.appendChild(input);
+
+        const unit = document.createElement("div");
+        unit.className = "ingredient-unit";
+        unit.textContent = item.unit;
+
+        row.appendChild(label);
+        row.appendChild(inputWrap);
+        row.appendChild(unit);
+
+        ingredientsContainer.appendChild(row);
+      });
+    }
+
+    // --- LOCAL STORAGE HELPERS ---
+    function saveToStorage(data) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      } catch (e) {
+        console.warn("LocalStorage save failed", e);
+      }
+    }
+
+    function loadFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (e) {
+        console.warn("LocalStorage read failed", e);
+        return null;
+      }
+    }
+
+    function populateFromStorage() {
+      const saved = loadFromStorage();
+      if (!saved) return;
+
+      if (saved.customerName) {
+        customerNameInput.value = saved.customerName;
+      }
+      if (saved.eventDate) {
+        eventDateInput.value = saved.eventDate;
+      }
+
+      if (saved.items) {
+        saved.items.forEach((row) => {
+          const input = document.getElementById("qty_" + row.id);
+          if (input) {
+            input.value = row.qty;
+          }
+        });
+      }
+    }
+
+    // --- COLLECT FORM DATA ---
+    function collectFormData() {
+      const items = [];
+
+      INGREDIENTS.forEach((item) => {
+        const input = document.getElementById("qty_" + item.id);
+        if (!input) return;
+
+        const raw = input.value.trim();
+        if (!raw) return;
+
+        const qty = parseFloat(raw);
+        if (isNaN(qty) || qty <= 0) return;
+
+        items.push({
+          id: item.id,
+          label: item.label,
+          emoji: item.emoji,
+          unit: item.unit,
+          qty,
+        });
+      });
+
+      return {
+        customerName: customerNameInput.value.trim(),
+        eventDate: eventDateInput.value.trim(),
+        items,
+      };
+    }
+
+    // --- VIEW SWITCHING ---
+    function goToPreview() {
+      const data = collectFormData();
+
+      if (!data.items.length) {
+        alert("Please enter at least one quantity.");
+        return;
+      }
+
+      // Save for next time
+      saveToStorage(data);
+
+      // Fill preview
+      renderPreview(data);
+
+      formView.style.display = "none";
+      previewView.style.display = "block";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function backToForm() {
+      previewView.style.display = "none";
+      formView.style.display = "block";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function clearForm() {
+      if (!confirm("Clear all quantities?")) return;
+
+      customerNameInput.value = "";
+      eventDateInput.value = "";
+      INGREDIENTS.forEach((item) => {
+        const input = document.getElementById("qty_" + item.id);
+        if (input) input.value = "";
+      });
+      saveToStorage({
+        customerName: "",
+        eventDate: "",
+        items: [],
+      });
+    }
+
+    // --- RENDER PREVIEW / FULLSCREEN ---
+    function renderPreview(data) {
+      // Meta
+      let metaParts = [];
+      if (data.customerName) {
+        metaParts.push(`<strong>Customer:</strong> ${escapeHtml(data.customerName)}`);
+      }
+      if (data.eventDate) {
+        metaParts.push(
+          `<strong>Date:</strong> ${escapeHtml(formatDateDisplay(data.eventDate))}`
+        );
+      }
+      if (!metaParts.length) {
+        metaParts.push(`<span style="color:#9ca3af">No name / date given</span>`);
+      }
+      previewMeta.innerHTML = metaParts.join("<br />");
+
+      // Ingredients list
+      previewList.innerHTML = data.items
+        .map(
+          (row) =>
+            `<div>• <strong>${row.label}</strong> – ${row.qty} ${row.unit}</div>`
+        )
+        .join("");
+
+      // Fullscreen mirror
+      fullscreenMeta.innerHTML = previewMeta.innerHTML;
+      fullscreenList.innerHTML = previewList.innerHTML;
+    }
+
+    function openFullscreen() {
+      fullscreenView.style.display = "block";
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+
+    function closeFullscreen() {
+      fullscreenView.style.display = "none";
+    }
+
+    // --- WHATSAPP SHARE ---
+    function buildShareText() {
+      const data = collectFormData();
+      if (!data.items.length) {
+        alert("Nothing to share. Please enter at least one quantity.");
+        return "";
+      }
+
+      let lines = [];
+      lines.push("Ingredients List");
+
+      if (data.customerName) {
+        lines.push(`Customer: ${data.customerName}`);
+      }
+      if (data.eventDate) {
+        lines.push(`Date: ${formatDateDisplay(data.eventDate)}`);
+      }
+      if (data.customerName || data.eventDate) {
+        lines.push(""); // blank line
+      }
+
+      data.items.forEach((row) => {
+        lines.push(`${row.label} – ${row.qty} ${row.unit}`);
+      });
+
+      return lines.join("\n");
+    }
+
+    function shareWhatsApp() {
+      const text = buildShareText();
+      if (!text) return;
+
+      const encoded = encodeURIComponent(text);
+      const url = "https://wa.me/?text=" + encoded;
+
+      // Open WhatsApp share (works best on mobile)
+      window.open(url, "_blank");
+    }
+
+    // --- HELPERS ---
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatDateDisplay(value) {
+      // value is yyyy-mm-dd
+      if (!value) return "";
+      const [y, m, d] = value.split("-");
+      return `${d}-${m}-${y}`;
+    }
+
+    // --- INIT ON LOAD ---
+    document.addEventListener("DOMContentLoaded", () => {
+      buildForm();
+
+      // Default date = today
+      if (!eventDateInput.value) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, "0");
+        const dd = String(today.getDate()).padStart(2, "0");
+        eventDateInput.value = `${yyyy}-${mm}-${dd}`;
+      }
+
+      populateFromStorage();
+    });
+  </script>
+</body>
+</html>
